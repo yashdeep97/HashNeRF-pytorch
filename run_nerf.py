@@ -929,7 +929,7 @@ def train():
         ################################
 
         t = time.time()-time0
-        # print(f"Step: {global_step}, Loss: {loss}, Time: {dt}")
+        print(f"Step: {global_step}, Loss: {loss}, Time: {t}")
         #####           end            #####
 
         # Rest is logging
@@ -972,12 +972,12 @@ def train():
                 np.save(f, np.array(rgbs))
             # input_file = """C:\Users\ythorat2\Downloads\HashNeRF-pytorch-main\HashNeRF-pytorch-main\test1.npy"""
             # arr1 = np.load(input_file)
-            create_video_file(np.array(rgbs), output_file = 'output1.mp4')
+            create_video_file(np.array(rgbs), output_file = 'videos/rgbs' + str(i/args.i_video) + '.mp4')
             
             
             with open('test2.npy', 'wb') as f:
                 np.save(f, np.array(disps))
-                
+            create_video_file(np.array(disps), output_file = 'videos/disps' + str(i/args.i_video) + '.mp4')
             
 
             # if args.use_viewdirs:
