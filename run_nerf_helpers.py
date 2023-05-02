@@ -299,6 +299,104 @@ class NeRF(nn.Module):
 #         # print("small nerf iteration 6:", torch.max(outputs), torch.min(outputs), outputs.shape, outputs)
 #         return outputs
 
+# class NeRFSmall(nn.Module):
+#     def __init__(self,
+#                  num_layers=3,
+#                  hidden_dim=64,
+#                  geo_feat_dim=15,
+#                  num_layers_color=4,
+#                  hidden_dim_color=64,
+#                  input_ch=32, input_ch_views=16
+#                  ):
+        
+#         super(NeRFSmall, self).__init__()
+
+#         self.input_ch = input_ch
+#         self.input_ch_views = input_ch_views
+        
+#         self.conv1 = torch.nn.Conv1d(32, 64, 3, padding="same")
+#         self.conv2 = torch.nn.Conv1d(64, 16, 3, padding="same")
+        
+#         self.conv3 = torch.nn.Conv1d(31, 64, 3, padding="same")
+#         self.conv4 = torch.nn.Conv1d(64, 64, 3, padding="same")
+#         self.conv5 = torch.nn.Conv1d(64, 3, 3, padding="same")
+        
+
+
+#     def forward(self, x):
+#         input_pts, input_views = torch.split(x, [self.input_ch, self.input_ch_views], dim=-1)
+#         input_pts = input_pts.reshape(1, 32, x.shape[0])
+#         input_views = input_views.reshape(1, 16, x.shape[0])
+        
+#         h = input_pts
+#         h = F.relu(self.conv1(h))
+#         h = self.conv2(h).squeeze().T
+        
+#         sigma, geo_feat = h[..., 0], h[..., 1:]
+#         geo_feat = geo_feat.reshape(1, 15, x.shape[0])
+#         sigma = sigma.reshape(1, 1, x.shape[0])
+        
+#         h = torch.cat([input_views, geo_feat], dim=1)
+        
+#         h = F.relu(self.conv3(h))
+#         h = F.relu(self.conv4(h))
+#         h = self.conv5(h)
+
+#         color = h
+#         outputs = torch.cat([color, sigma], 1).squeeze().T
+
+#         return outputs
+
+# class NeRFSmall(nn.Module):
+#     def __init__(self,
+#                  num_layers=3,
+#                  hidden_dim=64,
+#                  geo_feat_dim=15,
+#                  num_layers_color=4,
+#                  hidden_dim_color=64,
+#                  input_ch=32, input_ch_views=16
+#                  ):
+        
+#         super(NeRFSmall, self).__init__()
+
+#         self.input_ch = input_ch
+#         self.input_ch_views = input_ch_views
+            
+#         self.sigma1 = nn.Linear(32, 64, bias=False)
+#         self.sigma2 = nn.Linear(64, 16, bias=False)
+
+#         self.color1 = nn.Linear(31, 64, bias=False)
+#         self.color2 = nn.Linear(64, 64, bias=False)
+
+
+
+
+
+
+
+#         self.color3 = nn.Linear(64, 3, bias=False)
+        
+
+#     def forward(self, x):
+#         input_pts, input_views = torch.split(x, [self.input_ch, self.input_ch_views], dim=-1)
+        
+#         h = input_pts
+#         h = F.relu(self.sigma1(h))
+#         h = self.sigma2(h)
+
+#         sigma, geo_feat = h[..., 0], h[..., 1:]
+        
+#         h = torch.cat([input_views, geo_feat], dim=-1)
+
+#         h = F.relu(self.color1(h), inplace=True)
+#         h = self.color2(h)
+            
+#         # color = torch.sigmoid(h)
+#         color = h
+#         outputs = torch.cat([color, sigma.unsqueeze(dim=-1)], -1)
+#         # print("small nerf iteration 6:", torch.max(outputs), torch.min(outputs), outputs.shape, outputs)
+#         return outputs
+    
 class NeRFSmall(nn.Module):
     def __init__(self,
                  num_layers=3,
@@ -313,59 +411,51 @@ class NeRFSmall(nn.Module):
 
         self.input_ch = input_ch
         self.input_ch_views = input_ch_views
-
-        # sigma network
-        self.num_layers = num_layers
-        self.hidden_dim = hidden_dim
-        self.geo_feat_dim = geo_feat_dim
-
-
-        
             
         self.sigma1 = nn.Linear(32, 64, bias=False)
         self.sigma2 = nn.Linear(64, 16, bias=False)
 
-
-
-        # color network
-        self.num_layers_color = num_layers_color        
-        self.hidden_dim_color = hidden_dim_color
-        
-
-        self.color1 = nn.Linear(31, 64, bias=False)
+        self.color1 = nn.Linear(20, 64, bias=False)
         self.color2 = nn.Linear(64, 64, bias=False)
-        self.color3 = nn.Linear(64, 3, bias=False)
+
+
+        self.trinity1 = nn.Linear(50, 128, bias=False)
+        self.trinity2 = nn.Linear(128, 64, bias=False)
+        self.trinity3 = nn.Linear(64, 3, bias=False)
         
 
-    
     def forward(self, x):
-        # print("small nerf iteration 0: x ", x.shape)
         input_pts, input_views = torch.split(x, [self.input_ch, self.input_ch_views], dim=-1)
-        # print("small nerf iteration 1:input_pts, input_views ",input_pts.shape, input_views.shape)
-        # sigma
+        
         h = input_pts
-        h = self.sigma1(h)
-        h = F.relu(h, inplace=True)
+        h = F.relu(self.sigma1(h))
         h = self.sigma2(h)
 
         sigma, geo_feat = h[..., 0], h[..., 1:]
-        # print("small nerf iteration 2: sigma, geo_feat, input_views",sigma.shape, geo_feat.shape, input_views.shape)
-        # color
-        h = torch.cat([input_views, geo_feat], dim=-1)
-        # print("small nerf iteration 3: h ", h.shape)
-        h = self.color1(h)
-        h = F.relu(h, inplace=True)
-        h = self.color2(h)
-        h = F.relu(h, inplace=True)
-        h = self.color3(h)
         
-            
+        h = torch.cat([input_views, geo_feat], dim=-1)
+        
+        input_pts_2, input_views_2 = torch.split(h, [20, 11], dim=-1)
+        
+        h = F.relu(self.color1(input_pts_2), inplace=True)
+        h = self.color2(h)
+        
+        color, trinity_feat = h[..., 0], h[..., 1:]
+        
+        h = torch.cat([input_views_2, trinity_feat], dim=-1)
+        input_pts_3, input_views_3 = torch.split(h, [50, 24], dim=-1)
+        
+        
+        h = F.relu(self.trinity1(input_pts_3), inplace=True)
+        h = F.relu(self.trinity2(h), inplace=True)
+        h = self.trinity3(h)
+        
         # color = torch.sigmoid(h)
-        color = h
-        outputs = torch.cat([color, sigma.unsqueeze(dim=-1)], -1)
-        # print("small nerf iteration 6:", torch.max(outputs), torch.min(outputs), outputs.shape, outputs)
-        return outputs
+        trinity = h
+        outputs = torch.cat([trinity, color.unsqueeze(dim=-1)], -1)
 
+        return outputs
+    
 # Ray helpers
 def get_rays(H, W, K, c2w):
     i, j = torch.meshgrid(torch.linspace(0, W-1, W), torch.linspace(0, H-1, H))  # pytorch's meshgrid has indexing='ij'
